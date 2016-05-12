@@ -1,286 +1,116 @@
-/* * * * * * * * * * * *
-*  Rock/Paper/Scissors *
-*  by sparkychild      *
-* * * * * * * * * * * */
+/**
+ * 
+ * Slots.js Made By Dragotic. 
+ * Slots is a casino game.
+ *
+ **/
+
 'use strict';
 
-if (!Rooms.global.RPS) {
-	Rooms.global.RPS = {
-		searches: {},
-		games: {},
-		gameId: 0,
-	};
-}
+// To get hash colors of the names
+const color = require('../config/color');
 
-let choiceNames = {
-	"R": "Rock",
-	"P": "Paper",
-	"S": "Scissors",
+// Available slots for the game
+const slots = {
+    'bulbasaur': 3,
+    'squirtle': 6,
+    'charmander': 9,
+    'pikachu': 12,
+    'eevee': 15,
+    'snorlax': 18,
+    'dragonite': 21,
+    'mew': 24,
+    'mewtwo': 27,
 };
 
-class RPSGame {
-	constructor(player1, player2, gameType) {
-		this.p1 = player1;
-		this.p2 = player2;
-		this.p1choice = null;
-		this.p2choice = null;
-		Rooms.global.RPS.gameId++;
-		this.gameId = "RPS-" + Rooms.global.RPS.gameId;
-		this.gameType = gameType;
-		// set inactivity timer
-		this.timer = setTimeout(function () {
-			this.onEnd(true);
-		}.bind(this), 60000);
-		this.onInit();
-	}
+function currencyName (amount) 
+{ let name = " buck"; 
+return name; }
 
-	onInit() {
-		// set game
-		Rooms.global.RPS.games[this.gameId] = this;
+// Trozei sprites for each pokemon
+const slotsTrozei = {
+    'bulbasaur': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/bulbasaur.gif',
+    'squirtle': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/squirtle.gif',
+    'charmander': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/charmander.gif',
+    'pikachu': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/pikachu.gif',
+    'eevee': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/eevee.gif',
+    'snorlax': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/snorlax.gif',
+    'dragonite': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/dragonite.gif',
+    'mew': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/mew.gif',
+    'mewtwo': 'http://www.pokestadium.com/assets/img/sprites/misc/trozei/mewtwo.gif',   
+};
 
-		//delete searches
-		delete Rooms.global.RPS.searches[this.p1.userid];
-		delete Rooms.global.RPS.searches[this.p2.userid];
+const availableSlots = Object.keys(slots);
 
-		//change users
-		this.p1.RPSgame = this.gameId;
-		this.p2.RPSgame = this.gameId;
+function spin() {
+    return availableSlots[Math.floor(Math.random() * availableSlots.length)];
+};
 
-		//send popups
-		this.sendGameInformation(this.p1, this.p2);
-		this.sendGameInformation(this.p2, this.p1);
-	}
+function rng() {
+    return Math.floor(Math.random() * 100);
+};
 
-	sendGameInformation(player, opponent) {
-		let pmPost = "/html <div class=\"broadcast-green\"><center> You have been matched up with <span class=\"username\">" + Tools.escapeHTML(opponent.name) + "</span><br>" +
-			"<b>What is your choice?</b><br>" +
-			'<button name="send" value="/rps choose R ' + this.gameId + '">Rock</button>' +
-			'<button name="send" value="/rps choose P ' + this.gameId + '">Paper</button>' +
-			'<button name="send" value="/rps choose S ' + this.gameId + '">Scissors</button></center><br><br>' +
-			"You have 60 seconds to make your choice.</center></div>";
-		player.send("|pm|~Rock/Paper/Scissors Host|" + player.userid + "|" + pmPost);
-	}
-
-	updateUsers() {
-		//get the latest user...
-		this.p1 = Users.get(this.p1.userid);
-		this.p2 = Users.get(this.p2.userid);
-	}
-
-	onChoose(user, choice) {
-		this.updateUsers();
-		if (user.userid !== this.p1.userid && user.userid !== this.p2.userid) return false;
-		let playerChoice = user.userid === this.p1.userid ? "p1choice" : "p2choice";
-		if (this[playerChoice]) return user.send("|pm|~Rock/Paper/Scissors Host|" + user.userid + "|/html You have already chosen your move!");
-		this[playerChoice] = choice;
-		user.send("|pm|~Rock/Paper/Scissors Host|" + user.userid + "|/html You have chosen: " + choiceNames[choice] + ".");
-		if (this.p1choice && this.p2choice) this.onEnd();
-	}
-
-	onEnd(inactivity) {
-		clearTimeout(this.timer);
-		// in the case of inactivity
-		if (inactivity) {
-			//determine winner
-			if (this.p1choice && !this.p2choice) {
-				this.p2.send("|pm|~Rock/Paper/Scissors Host|" + this.p2.userid + "|/html You have lost due to inactivity.");
-				this.parseWin(this.p1, this.p2, true);
-			} else if (!this.p1choice && this.p2choice) {
-				this.p1.send("|pm|~Rock/Paper/Scissors Host|" + this.p1.userid + "|/html You have lost due to inactivity.");
-				this.parseWin(this.p2, this.p1, true);
-			} else {
-				this.p1.send("|pm|~Rock/Paper/Scissors Host|" + this.p1.userid + "|/html You have lost due to inactivity.");
-				this.p2.send("|pm|~Rock/Paper/Scissors Host|" + this.p2.userid + "|/html You have lost due to inactivity.");
-			}
-			this.p1.RPSgame = null;
-			this.p2.RPSgame = null;
-			delete Rooms.global.RPS.games[this.gameId];
-			return;
-		}
-		let resultTable = {
-			"rr": "pp",
-			"rp": "p2",
-			"rs": "p1",
-			"pp": "pp",
-			"pr": "p1",
-			"ps": "p2",
-			"ss": "pp",
-			"sp": "p1",
-			"sr": "p2",
-		};
-		let winner, loser;
-		let gameResult = resultTable[this.p1choice.toLowerCase() + this.p2choice.toLowerCase()];
-		if (gameResult === "pp") {
-			//tie
-			this.p1.send("|pm|~Rock/Paper/Scissors Host|" + this.p1.userid + "|/html The game with " + this.p2.name + " was a tie! " + this.p2.name + " has chosen " + choiceNames[this.p2choice] + ".");
-			this.p2.send("|pm|~Rock/Paper/Scissors Host|" + this.p2.userid + "|/html The game with " + this.p1.name + " was a tie! " + this.p1.name + " has chosen " + choiceNames[this.p1choice] + ".");
-			if (this.gameType === "bucks") {
-				//return their 3 bucks each
-				Db("money").set(this.p1.userid, Db("money").get(this.p1.userid, 0) + 3);
-				Db("money").set(this.p2.userid, Db("money").get(this.p2.userid, 0) + 3);
-			}
-		} else if (gameResult === "p1") {
-			winner = this.p1;
-			loser = this.p2;
-			this.parseWin(winner, loser);
-		} else if (gameResult === "p2") {
-			winner = this.p2;
-			loser = this.p1;
-			this.parseWin(winner, loser);
-		}
-		//destroy this object
-		this.p1.RPSgame = null;
-		this.p2.RPSgame = null;
-		delete Rooms.global.RPS.games[this.gameId];
-	}
-	parseWin(winner, loser, inactivity) {
-		winner.send("|pm|~Rock/Paper/Scissors Host|" + winner.userid + "|/html You have won the game against " + loser.name + "! " + (!inactivity ? loser.name + " has chosen " + choiceNames[(winner.userid === this.p1.userid ? this.p2choice : this.p1choice)] + "." : ""));
-		loser.send("|pm|~Rock/Paper/Scissors Host|" + loser.userid + "|/html You have lost the game against " + winner.name + "! " + (!inactivity ? winner.name + " has chosen " + choiceNames[(loser.userid === this.p1.userid ? this.p2choice : this.p1choice)] + "." : ""));
-		if (this.gameType === "bucks") {
-			//set but bucks
-			Db("money").set(winner.userid, Db("money").get(winner.userid, 0) + 6);
-			winner.send("|pm|~Rock/Paper/Scissors Host|" + winner.userid + "|/html You have also won 6 bucks.");
-		} else {
-			//do rank change
-			let winnerPoints = Db("rpsrank").get(winner.userid, 1000);
-			let loserPoints = Db("rpsrank").get(loser.userid, 1000);
-			let difference = Math.abs(winnerPoints - loserPoints);
-			let winnerPointGain, loserPointGain;
-			let pointGain = ~~(difference / 4) + 8;
-			if (winnerPoints > loserPoints) {
-				pointGain = 12;
-			}
-			winnerPointGain = pointGain;
-			loserPointGain = -1 * pointGain;
-
-			//give points to the winner;
-			if (winnerPoints < 1050) {
-				winnerPointGain = winnerPointGain >= 23 ? winnerPointGain : 23;
-			}
-			if (winnerPoints < 1125) {
-				winnerPointGain *= 2;
-			}
-			//limit gains
-			if (winnerPointGain < 12) winnerPointGain = 12;
-			if (winnerPointGain > 75) winnerPointGain = 75;
-			let winnerFinalPoints = winnerPoints + winnerPointGain;
-			Db("rpsrank").set(winner.userid, winnerFinalPoints);
-
-			//deduct points from loser
-			if (winnerPoints > loserPoints) {
-				loserPointGain = Math.ceil(loserPointGain / 2);
-			}
-			//limit losses
-			if (loserPointGain > -6) loserPointGain = -6;
-			if (loserPointGain < -50) loserPointGain = -50;
-			let loserFinalPoints = loserPoints + loserPointGain;
-			//unable to go below 1000;
-			if (loserFinalPoints < 1000) loserFinalPoints = 1000;
-			Db("rpsrank").set(loser.userid, loserFinalPoints);
-
-			//announce the change in rank
-			winner.send("|pm|~Rock/Paper/Scissors Host|" + winner.userid + "|/html " + winner.name + ": " + winnerPoints + " --> " + winnerFinalPoints + "<br>" + loser.name + ": " + loserPoints + " --> " + loserFinalPoints);
-			loser.send("|pm|~Rock/Paper/Scissors Host|" + loser.userid + "|/html " + winner.name + ": " + winnerPoints + " --> " + winnerFinalPoints + "<br>" + loser.name + ": " + loserPoints + " --> " + loserFinalPoints);
-		}
-	}
-}
-
-function newSearch(user, gameTypeId) {
-	for (let search in Rooms.global.RPS.searches) {
-		if (Rooms.global.RPS.searches[search] === gameTypeId) {
-			//same ip check
-			if (Users.get(search).latestIp === user.latestIp && gameTypeId === "ladder") continue;
-			delete Rooms.global.RPS.searches[search];
-			return new RPSGame(user, Users.get(search), gameTypeId);
-		}
-	}
-	//no search found
-	Rooms.global.RPS.searches[user.userid] = gameTypeId;
-	return false;
-}
-
-function updateSearches() {
-	let updatedSearches = {};
-	for (let userid in Rooms.global.RPS.searches) {
-		let user = Users.get(userid);
-		if (user && user.connected) {
-			//get user's latest userid
-			updatedSearches[user.userid] = Rooms.global.RPS.searches[userid];
-		} else {
-			//return bucks if it's a search for bucks
-			if (updatedSearches[user.userid] === "bucks") Db("money").set(userid, Db("money").get(userid, 0) + 3);
-		}
-	}
-	Rooms.global.RPS.searches = updatedSearches;
-}
+function display(result, user, slotOne, slotTwo, slotThree) {
+    let display = '<div style="padding: 3px; background: #000000; padding: 5px; border-radius: 5px; text-align: center;">' + 
+    '<center><img src="http://i.imgur.com/p2nObtE.gif" width="300" height="70"></center><br />' +
+    '<center><img style="padding: 3px; border: 1px inset gold; border-radius: 5px; box-shadow: inset 1px 1px 5px white;" src="' + slotsTrozei[slotOne] + '">&nbsp;&nbsp;&nbsp;' + '<img style="padding: 3px; border: 1px inset gold; border-radius: 5px; box-shadow: inset 1px 1px 5px white;" src="' + slotsTrozei[slotTwo] + '">&nbsp;&nbsp;&nbsp;' + '<img style="padding: 3px; border: 1px inset gold; border-radius: 5px; box-shadow: inset 1px 1px 5px white;" src="' + slotsTrozei[slotThree] + '"></center>' +
+    '<font style="color: white;"><br />';
+    if (!result) {
+        display += 'Aww... bad luck, <b><font color="' + color(user) + '">' + user + '</font></b>. Better luck next time!</font>';
+    }
+    if (result) {
+        display += 'Congratulations, <b><font color="' + color(user) + '">' + user + '</font></b>. You have won ' +
+        slots[slotOne] + ' bucks!!</font>';
+    }
+    return display + '</div>';
+};
 
 exports.commands = {
-	rps: {
-		search: function (target, room, user) {
-			if (user.RPSgame) return this.errorReply("You are already have a game/searching for a game of Rock/Paper/Scissors!");
-			updateSearches();
-			let gameType = "ladder";
-			if (target && target === "bucks") {
-				if (Db("money").get(user.userid, 0) >= 3) {
-					gameType = "bucks";
-					Db("money").set(user.userid, (Db("money").get(user.userid, 0) - 3));
-				} else {
-					return this.errorReply("You do not have enough bucks (3) to search for a game of Rock/Paper/Scissors for bucks.");
-				}
-			}
-			user.RPSgame = "searching";
-			newSearch(user, gameType);
-			this.sendReply("You are now searching for a game of Rock/Paper/Scissors (" + gameType + ").");
-		},
-		endsearch: function (target, room, user) {
-			if (!user.RPSgame || user.RPSgame !== "searching") return this.errorReply("You are not searching for a game of Rock/Paper/Scissors!");
-			updateSearches();
-			if (Rooms.global.RPS.searches[user.userid] === "bucks") {
-				Db("money").set(user.userid, Db("money").get(user.userid, 0) + 3);
-			}
-			delete Rooms.global.RPS.searches[user.userid];
-			user.RPSgame = null;
-			this.sendReply("You have cancelled your search for a game of Rock/Paper/Scissors.");
-		},
-		choose: function (target, room, user) {
-			if (!target || !user.RPSgame) return false;
-			let parts = target.split(" ");
-			if (parts.length !== 2) return false;
-			let choice = parts[0].toUpperCase();
-			let gameId = parts[1];
-			if (gameId !== user.RPSgame) return false;
-			if (["R", "P", "S"].indexOf(choice) === -1) return false;
-			if (Rooms.global.RPS.games[gameId]) {
-				Rooms.global.RPS.games[gameId].onChoose(user, choice);
-			}
-		},
-		rank: function (target, room, user) {
-			if (!this.runBroadcast()) return false;
-			target = (toId(target) ? (Users.get(target) ? Users.get(target).name : target) : user.name);
-			let userRank = Db("rpsrank").get(toId(target), 1000);
-			this.sendReplyBox("Rank - <b>" + target + "</b>: " + userRank);
-		},
-		ladder: function (target, room, user) {
-			if (!this.runBroadcast()) return false;
-			let html = '<center><b><font size="2">Rock/Paper/Scissors Ladder</font><b></center><br><div style="max-height: 310px; overflow-y: scroll">';
-			let index = 1;
-			let table = Object.keys(Db("rpsrank").object()).sort(function (a, b) {
-				if (Db("rpsrank").get(a, 1000) > Db("rpsrank").get(b, 1000)) return -1;
-				return 1;
-			}).slice(0, 100).map(function (u) {
-				return '<tr><td>&nbsp;' + index++ + '&nbsp;</td><td>&nbsp;' + u + '&nbsp;</td><td>&nbsp;' + Db("rpsrank").get(u, 1000) + "&nbsp;</td></tr>";
-			}).join("");
-			if (!table.length) return this.sendReplyBox("The ladder is empty!");
-			this.sendReplyBox(html + '<table border="1" cellspacing="0" cellpadding="5" width="100%"><tbody><tr><th>Rank</th><th>Username</th><th>RPS Ladder Points</th></tr>' + table + "</table></div>");
-		},
-		"": "help",
-		"help": function (target, room, user) {
-			this.parse("/help rps");
-		},
-	},
-	rpshelp: ["/rps search (bucks) - searches for a game of Rock/Paper/Scissors either for ladder points or for bucks.",
-	"/rps endsearch - stop searching for a game of Rock/Paper/Scissors.",
-	"/rps rank [user] - shows rank for Rock/Paper/Scissors for either a user or yourself.",
-	"/rps ladder - shows top 100 on the RPS ladder.",
-	],
+    slots: {
+        start: 'spin',
+        spin: function(target, room ,user) {
+            if (room.id !== 'casino') return this.errorReply('Casino games can only be played in the "Casino".');
+            if (!this.canTalk()) return this.errorReply('/slots spin - Access Denied.');
+            
+            const amount = Db('money').get(user.userid, 0);
+            if (amount < 3) return this.errorReply('You don\'t have enough bucks to play this game. You need ' + (3 - amount) + currencyName(amount) + ' more.');
+            
+            const result = spin();
+            const chancePercentage = rng();
+            const chancesGenerated = 70 + availableSlots.indexOf(result) * 3;
+
+            if (chancePercentage >= chancesGenerated) {
+                Db('money').set(user.userid, (amount + slots[result]));
+                return this.sendReplyBox(display(true, user.name, result, result, result));
+            }
+            
+            // Incase all outcomes are same, it'll resort to changing the first one.
+            let outcomeOne = spin();
+            let outcomeTwo = spin();
+            let outcomeThree = spin();
+            
+            while (outcomeOne === outcomeTwo && outcomeTwo === outcomeThree) {
+                outcomeOne = spin();
+            }
+
+            Db('money').set(user.userid, (amount - 3));
+            return this.sendReplyBox(display(false, user.name, outcomeOne, outcomeTwo, outcomeThree));
+        },
+        '': function(target, room, user) {
+            return this.parse('/help slots');
+        },
+    },
+    slotshelp: ['Slots is a casino game. ' + 
+    'It awards the user with varying amount of bucks depending on the streak of pokemon they user gets.' + '\n' +
+    'Following Are Slots Winnings: \n' +
+    'Bulbasaur :  3 bucks' + '\n' +
+    'Squirtle  :  6 bucks' + '\n' +
+    'Charmander:  9 bucks' + '\n' +
+    'Pikachu   : 12 bucks' + '\n' +
+    'Eevee     : 15 bucks' + '\n' +
+    'Snorlax   : 17 bucks' + '\n' +
+    'Dragonite : 21 bucks' + '\n' +
+    'Mew       : 24 bucks' + '\n' +
+    'Mewtwo    : 27 bucks' + '\n' +
+    'Use "/slots spin" to play the game.'],
 };
