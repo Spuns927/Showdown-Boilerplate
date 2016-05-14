@@ -60,7 +60,7 @@ function display(result, user, slotOne, slotTwo, slotThree) {
     }
     if (result) {
         display += 'Congratulations, <b><font color="' + color(user) + '">' + user + '</font></b>. You have won ' +
-        slots[slotOne] + ' bucks!!</font>';
+        slots[slotOne] + ' tickets!!</font>';
     }
     return display + '</div>';
 };
@@ -72,7 +72,7 @@ exports.commands = {
             if (room.id !== 'casino') return this.errorReply('Casino games can only be played in the "Casino".');
             if (!this.canTalk()) return this.errorReply('/slots spin - Access Denied.');
             
-            const amount = Db('tickets').get(user.userid, 0);
+            const amount = Db('ticket').get(user.userid, 0);
             if (amount < 3) return this.errorReply('You don\'t have enough tickets to play this game. You need ' + (3 - amount) + currencyName(amount) + ' more.');
             
             const result = tickets();
@@ -80,7 +80,7 @@ exports.commands = {
             const chancesGenerated = 70 + availableSlots.indexOf(result) * 3;
 
             if (chancePercentage >= chancesGenerated) {
-                Db('tickets').set(user.userid, (amount + slots[result]));
+                Db('ticket').set(user.userid, (amount + slots[result]));
                 return this.sendReplyBox(display(true, user.name, result, result, result));
             }
             
@@ -93,7 +93,7 @@ exports.commands = {
                 outcomeOne = spin();
             }
 
-            Db('tickets').set(user.userid, (amount - 3));
+            Db('ticket').set(user.userid, (amount - 3));
             return this.sendReplyBox(display(false, user.name, outcomeOne, outcomeTwo, outcomeThree));
         },
         '': function(target, room, user) {
