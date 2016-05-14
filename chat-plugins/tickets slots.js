@@ -67,15 +67,15 @@ function display(result, user, slotOne, slotTwo, slotThree) {
 
 exports.commands = {
     slots: {
-        start: 'spin tickets',
-        spin: function(target, room ,user) {
+        start: 'tickets',
+        tickets: function(target, room ,user) {
             if (room.id !== 'casino') return this.errorReply('Casino games can only be played in the "Casino".');
             if (!this.canTalk()) return this.errorReply('/slots spin - Access Denied.');
             
             const amount = Db('tickets').get(user.userid, 0);
-            if (amount < 3) return this.errorReply('You don\'t have enough bucks to play this game. You need ' + (3 - amount) + currencyName(amount) + ' more.');
+            if (amount < 3) return this.errorReply('You don\'t have enough tickets to play this game. You need ' + (3 - amount) + currencyName(amount) + ' more.');
             
-            const result = spin();
+            const result = tickets();
             const chancePercentage = rng();
             const chancesGenerated = 70 + availableSlots.indexOf(result) * 3;
 
