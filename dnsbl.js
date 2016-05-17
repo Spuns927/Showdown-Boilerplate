@@ -14,7 +14,7 @@
 
 'use strict';
 
-const BLOCKLISTS = ['sbl.spamhaus.org', 'rbl.efnetrbl.org', '100tb.com', '.unknown-nohost', 'optonline.net', 'radiant.net', 'dyn.optonline.net', 'members.linode.com', 'vultr.com'];
+const BLOCKLISTS = ['sbl.spamhaus.org', 'rbl.efnetrbl.org', '100tb.com', '.unknown-nohost', 'optonline.net', 'radiant.net', 'dyn.optonline.net', 'members.linode.com', 'vultr.com', 'digitalocean.proxy-nohost', 'zenmate.proxy-nohost'];
 
 let dns = require('dns');
 
